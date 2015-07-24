@@ -1,0 +1,117 @@
+* update of code for JSS paper on comp.risk in  Timereg 
+
+  Due to various developments the original code not longer runs, also
+  due to some changes in the numerical procedures. This version of the
+  file is slightly changed and runs !
+
+
+
+#+BEGIN_QUOTE
+"Thomas H. Scheike, Mei-Jie Zhang (2011)."
+"Analyzing Competing Risk Data Using the R timereg Package."
+"Journal of Statistical Software, 38(2), 1-15."
+"URL http://www.jstatsoft.org/v38/i02/."
+#+END_QUOTE
+
+       
+** R-code in file
+
+#+BEGIN_SRC R :exports both :file timereg1.png :cache yes
+
+fol <- read.table("follic.txt",sep=",",header=TRUE)
+evcens <- (fol$resp=="NR" | fol$relsite!="")+0
+crcens <- (fol$resp=="CR" & fol$relsite=="" & fol$stat==1)+0
+cause <- ifelse(evcens==1,1,ifelse(crcens==1,2,0))
+table(cause)
+
+stage <- as.numeric(fol$clinstg==2) 
+fol$chemo<-as.numeric(fol$ch=="Y")
+times1=sort(unique(fol$dftime[cause==1]))
+fol$age <- scale(fol$age)
+
+library("timereg")
+library("cmprsk")
+
+out1 <-comp.risk(Event(dftime,cause)~+1,data=fol,cause=1,model="additive")
+
+pout1 <- predict(out1,X=1)
+
+group<-rep(1,541)
+fit<-cuminc(fol$dftime,cause,group,cencode=0)
+
+pdf("fig1.pdf",height=8,width=13)
+par(mfrow=c(1,2))
+plot(fit,main="cmprsk",xlab="Years (a)")
+plot(pout1,xlim=c(0,30),xlab="Years (b)",main="timereg",uniform=2,se=3)
+dev.off()
+
+## problems with convergence when hgb included
+outf<-comp.risk(Event(dftime,cause)~stage+age+chemo,
+data=fol,cause=1,n.sim=5000,model="prop",cens.model="cox")
+summary(outf) 
+
+
+pdf("fig2.pdf",height=8,width=13)
+par(mfrow=c(2,2))
+for (i in 2:4) plot(outf,specific.comps=i,pointwise.ci=2,sim.ci=3) 
+dev.off()
+
+pdf("fig3.pdf",height=8,width=13)
+par(mfrow=c(2,2)) 
+for (i in 2:4) plot(outf,specific.comps=i,score=1) 
+dev.off()
+
+png("fig3.png", height = 8 * 100, width = 13 * 100, res = 144)
+par(mfrow=c(2,2)) 
+for (i in 2:4) plot(outf,specific.comps=i,score=1) 
+dev.off()
+
+outf1<-comp.risk(Event(dftime,cause)~stage+age+const(hgb)+chemo,
+data=fol,cause=1,times=times1,model="prop")
+summary(outf1) 
+
+outfg<-comp.risk(Event(dftime,cause)~const(stage)+const(age)+
+const(hgb)+const(chemo),data=fol,cause=1,times=times1,model="prop",cens.model="cox")
+summary(outfg)
+
+## predictions for fg model and outf1
+
+newdata=data.frame(stage=c(0,1),age=c(-1,0.3),hgb=rep(138,2),chemo=c(0,1))
+
+poutf1<-predict(outf1,newdata)
+poutfg<-predict(outfg,newdata)
+
+pdf("fig4.pdf",height=8,width=13)
+par(mfrow=c(1,2))
+plot(poutf1,multiple=1,se=0,uniform=0,col=1:2,lty=1:2)
+title(main="Flexible model predictions")
+plot(poutfg,multiple=1,se=0,uniform=0,col=1:2,lty=1:2)
+title(main="Fine-Gray model predictions")
+dev.off()
+
+pdf("fig5.pdf",height=8,width=13)
+par(mfrow=c(1,2))
+plot(poutf1,se=0,uniform=2,col=1,lty=1,specific.comps=1)
+plot(poutfg,new=0,se=0,uniform=0,col=2,lty=2,specific.comps=1)
+title(main="Type I patients")
+legend(1,1.0,c("Flexible model","Fine-Gray model"),lty=1:2,col=1:2)
+plot(poutf1,se=0,uniform=1,col=1,lty=1,specific.comps=2)
+plot(poutfg,new=0,se=0,uniform=0,col=2,lty=2,specific.comps=2)
+title(main="Type II patients")
+legend(1,1.0,c("Flexible model","Fine-Gray model"),lty=1:2,col=1:2)
+dev.off()
+
+  library(timereg)
+  
+  example(aalen)
+  example(cox.aalen)
+  example(comp.risk)
+  example(two.stage)
+  example(restricted.residual.mean)
+
+#+END_SRC
+
+:RESULTS:
+[[file:inst/timereg1.png]]
+:END:
+
