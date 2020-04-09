@@ -1,3 +1,32 @@
+#+TITLE: Update code for comp.risk and JSS 
+#+AUTHOR: Thomas Scheike 
+#+PROPERTY: session *R*
+#+PROPERTY: cache no
+#+PROPERTY: results output 
+#+PROPERTY: wrap example 
+#+PROPERTY: exports code 
+#+PROPERTY: tangle yes 
+#+PROPERTY: comments yes
+#+OPTIONS: LaTeX:nil timestamp:t author:nil d:t
+#+STARTUP: hideall 
+# http://orgmode.org/manual/Export-options.html
+#+OPTIONS: toc:t h:4 num:nil 
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="orgmode5-ts.css">
+# +HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://192.38.117.59/~kkho/styles/orgmode5.css">
+#+HTML_HEAD: <link rel="icon" type="image/x-icon" href="http://www.biostat.ku.dk/~kkho/styles/logo.ico"/>
+#+HTML_HEAD: <style type="text/css">body { background-image: url(http://www.biostat.ku.dk/~kkho/styles/sund.png); background-size:120px 95px; background-position: 2% 0.55em; }
+#+HTML_HEAD:  a.logo span { background: none; }
+#+HTML_HEAD:  th,td,tr,table th,table th,table td {
+#+HTML_HEAD:      background: rgba(240,240,240,1);         
+#+HTML_HEAD:      border: none;
+#+HTML_HEAD:  }
+#+HTML_HEAD:   body { width: 800px; text-align:justify; text-justify:inter-word; }
+#+HTML_HEAD: </style>
+#+BEGIN_HTML
+<a href="http://www.biostat.ku.dk/~ts/survival class="logo"><span></span></a>
+#+END_HTML
+
+
 * update of code for JSS paper on comp.risk in  Timereg 
 
   Due to various developments the original code not longer runs, also
@@ -13,11 +42,9 @@
 "URL http://www.jstatsoft.org/v38/i02/."
 #+END_QUOTE
 
-       
 ** R-code in file
 
-#+BEGIN_SRC R :exports both :file timereg1.png :cache yes
-
+#+BEGIN_SRC R :results graphics :cache no :file fig1.png :exports both :session *R*
 fol <- read.table("follic.txt",sep=",",header=TRUE)
 evcens <- (fol$resp=="NR" | fol$relsite!="")+0
 crcens <- (fol$resp=="CR" & fol$relsite=="" & fol$stat==1)+0
@@ -33,63 +60,151 @@ library("timereg")
 library("cmprsk")
 
 out1 <-comp.risk(Event(dftime,cause)~+1,data=fol,cause=1,model="additive")
-
 pout1 <- predict(out1,X=1)
-
 group<-rep(1,541)
 fit<-cuminc(fol$dftime,cause,group,cencode=0)
 
-pdf("fig1.pdf",height=8,width=13)
+paper <- 0
+if (paper==1) pdf("fig1.pdf",height=8,width=13)
 par(mfrow=c(1,2))
 plot(fit,main="cmprsk",xlab="Years (a)")
 plot(pout1,xlim=c(0,30),xlab="Years (b)",main="timereg",uniform=2,se=3)
-dev.off()
+if (paper==1) dev.off()
+#+END_SRC
 
+
+#+RESULTS[<2020-04-09 15:31:36> 8c598adee6975e0a5323ccde0a7712fc5b0621d8]:
+#+BEGIN_example
+[[file:fig1.png]]
+#+END_example
+
+[[file:fig1.png]]
+
+#+BEGIN_SRC R :results output :exports both :session *R* :cache no  
 ## problems with convergence when hgb included
 outf<-comp.risk(Event(dftime,cause)~stage+age+chemo,
 data=fol,cause=1,n.sim=5000,model="prop",cens.model="cox")
 summary(outf) 
+#+END_SRC
+
+#+RESULTS:
+#+BEGIN_example
+Competing risks Model 
+
+Test for nonparametric terms 
+
+Test for non-significant effects 
+            Supremum-test of significance p-value H_0: B(t)=0
+(Intercept)                         12.10              0.0000
+stage                                5.04              0.0000
+age                                  4.07              0.0008
+chemo                                2.18              0.1850
+
+Test for time invariant effects 
+                  Kolmogorov-Smirnov test p-value H_0:constant effect
+(Intercept)                         2.980                      0.0000
+stage                               0.950                      0.0210
+age                                 0.853                      0.0008
+chemo                               0.760                      0.0214
+                    Cramer von Mises test p-value H_0:constant effect
+(Intercept)                        13.200                      0.0000
+stage                               2.660                      0.0004
+age                                 0.457                      0.0014
+chemo                               0.482                      0.3290
+#+END_example
 
 
-pdf("fig2.pdf",height=8,width=13)
+#+BEGIN_SRC R :results graphics :cache no :file fig2.png :exports both :session *R*
+paper <- 0
+if (paper==1) pdf("fig2.pdf",height=8,width=13)
 par(mfrow=c(2,2))
 for (i in 2:4) plot(outf,specific.comps=i,pointwise.ci=2,sim.ci=3) 
-dev.off()
+if (paper==1) dev.off()
+#+END_SRC
 
-pdf("fig3.pdf",height=8,width=13)
+#+RESULTS[<2020-04-09 15:31:36> 76e9ae82bc8a5ecce46f7c68d4ba60c7710bf3b3]:
+#+BEGIN_example
+[[file:fig2.png]]
+#+END_example
+
+[[file:fig2.png]]
+
+#+BEGIN_SRC R :results graphics :cache no :file fig3.png :exports both :session *R*
+if (paper==1) pdf("fig3.pdf",height=8,width=13)
 par(mfrow=c(2,2)) 
 for (i in 2:4) plot(outf,specific.comps=i,score=1) 
-dev.off()
+if (paper==1) dev.off()
+#+END_SRC
 
-png("fig3.png", height = 8 * 100, width = 13 * 100, res = 144)
-par(mfrow=c(2,2)) 
-for (i in 2:4) plot(outf,specific.comps=i,score=1) 
-dev.off()
+#+RESULTS[<2020-04-09 15:31:36> 543051ad061259bed1b62e5a1030f286511c7358]:
+#+BEGIN_example
+[[file:fig3.png]]
+#+END_example
 
+[[file:fig3.png]]
+
+#+BEGIN_SRC R :results output :exports both :session *R* :cache no  
 outf1<-comp.risk(Event(dftime,cause)~stage+age+const(hgb)+chemo,
 data=fol,cause=1,times=times1,model="prop")
 summary(outf1) 
+#+END_SRC
 
+#+RESULTS:
+#+BEGIN_example
+Competing risks Model 
+
+No test for non-parametric terms
+Parametric terms : 
+              Coef.      SE Robust SE      z P-val lower2.5% upper97.5%
+const(hgb) 0.000387 0.00406   0.00406 0.0953 0.924  -0.00757    0.00834
+#+END_example
+
+#+BEGIN_SRC R :results output :exports both :session *R* :cache no  
 outfg<-comp.risk(Event(dftime,cause)~const(stage)+const(age)+
 const(hgb)+const(chemo),data=fol,cause=1,times=times1,model="prop",cens.model="cox")
 summary(outfg)
+#+END_SRC
 
+#+RESULTS:
+#+BEGIN_example
+Competing risks Model 
+
+No test for non-parametric terms
+Parametric terms : 
+                 Coef.      SE Robust SE       z    P-val lower2.5% upper97.5%
+const(stage)  0.678000 0.13900   0.13900  4.8800 1.05e-06   0.40600    0.95000
+const(age)    0.280000 0.07210   0.07210  3.8900 1.02e-04   0.13900    0.42100
+const(hgb)    0.000149 0.00413   0.00413  0.0362 9.71e-01  -0.00795    0.00824
+const(chemo) -0.302000 0.17600   0.17600 -1.7200 8.59e-02  -0.64700    0.04300
+#+END_example
+
+
+#+BEGIN_SRC R :results graphics :cache no :file fig4.png :exports both :session *R*
 ## predictions for fg model and outf1
-
 newdata=data.frame(stage=c(0,1),age=c(-1,0.3),hgb=rep(138,2),chemo=c(0,1))
 
 poutf1<-predict(outf1,newdata)
 poutfg<-predict(outfg,newdata)
 
-pdf("fig4.pdf",height=8,width=13)
+if (paper==1) pdf("fig4.pdf",height=8,width=13)
 par(mfrow=c(1,2))
 plot(poutf1,multiple=1,se=0,uniform=0,col=1:2,lty=1:2)
 title(main="Flexible model predictions")
 plot(poutfg,multiple=1,se=0,uniform=0,col=1:2,lty=1:2)
 title(main="Fine-Gray model predictions")
-dev.off()
+if (paper==1) dev.off()
+#+END_SRC
 
-pdf("fig5.pdf",height=8,width=13)
+#+RESULTS[<2020-04-09 15:31:36> 273a7a67b06126ca0406948ad74f9ae0caea00ab]:
+#+BEGIN_example
+[[file:fig4.png]]
+#+END_example
+
+[[file:fig4.png]]
+
+#+BEGIN_SRC R :results graphics :cache no :file fig5.png :exports both :session *R*
+paper <- 0
+if (paper==1) pdf("fig5.pdf",height=8,width=13)
 par(mfrow=c(1,2))
 plot(poutf1,se=0,uniform=2,col=1,lty=1,specific.comps=1)
 plot(poutfg,new=0,se=0,uniform=0,col=2,lty=2,specific.comps=1)
@@ -99,19 +214,12 @@ plot(poutf1,se=0,uniform=1,col=1,lty=1,specific.comps=2)
 plot(poutfg,new=0,se=0,uniform=0,col=2,lty=2,specific.comps=2)
 title(main="Type II patients")
 legend(1,1.0,c("Flexible model","Fine-Gray model"),lty=1:2,col=1:2)
-dev.off()
-
-  library(timereg)
-  
-  example(aalen)
-  example(cox.aalen)
-  example(comp.risk)
-  example(two.stage)
-  example(restricted.residual.mean)
-
+if (paper==1) dev.off()
 #+END_SRC
 
-:RESULTS:
-[[file:inst/timereg1.png]]
-:END:
+#+RESULTS:
+#+BEGIN_example
+[[file:fig5.png]]
+#+END_example
 
+[[file:fig5.png]]
